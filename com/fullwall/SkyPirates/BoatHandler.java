@@ -68,6 +68,7 @@ public class BoatHandler {
 		if (isMoving())
 			wasMovingLastTick = true;
 		SkyPirates.boats.put(boat.getEntityId(), this);
+
 	}
 
 	private double getYaw() {

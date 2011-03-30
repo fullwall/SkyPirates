@@ -2,9 +2,10 @@ package com.fullwall.SkyPirates;
 
 import org.bukkit.entity.Boat;
 import org.bukkit.entity.Player;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerAnimationType;
-import org.bukkit.event.player.PlayerItemEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerListener;
 
 public class PlayerListen extends PlayerListener {
@@ -15,16 +16,18 @@ public class PlayerListen extends PlayerListener {
 	}
 
 	@Override
-	public void onPlayerItem(PlayerItemEvent event) {
-		Player p = event.getPlayer();
-		if (!(p.isInsideVehicle()))
-			return;
-		if (!(p.getVehicle() instanceof Boat))
-			return;
-		if (!(checkBoats((Boat) p.getVehicle())))
-			return;
-		BoatHandler boat = getBoatHandler((Boat) p.getVehicle());
-		boat.doRightClick();
+	public void onPlayerInteract(PlayerInteractEvent event) {
+		if (event.getAction() == Action.RIGHT_CLICK_AIR) {
+			Player p = event.getPlayer();
+			if (!(p.isInsideVehicle()))
+				return;
+			if (!(p.getVehicle() instanceof Boat))
+				return;
+			if (!(checkBoats((Boat) p.getVehicle())))
+				return;
+			BoatHandler boat = getBoatHandler((Boat) p.getVehicle());
+			boat.doRightClick();
+		}
 	}
 
 	/*

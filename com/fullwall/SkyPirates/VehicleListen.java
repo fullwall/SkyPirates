@@ -165,7 +165,6 @@ public class VehicleListen extends VehicleListener {
 			super.onVehicleBlockCollision(event);
 			return;
 		}
-
-		super.onVehicleBlockCollision(event);
+		event.getVehicle().teleport(event.getVehicle().getPassenger());
 	}
 }

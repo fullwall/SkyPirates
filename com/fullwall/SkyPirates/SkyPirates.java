@@ -34,6 +34,10 @@ public class SkyPirates extends JavaPlugin {
 	private static final String codename = "Caribbean";
 	public static Logger log = Logger.getLogger("Minecraft");
 
+	public void onLoad() {
+
+	}
+
 	public void onEnable() {
 		PluginManager pm = getServer().getPluginManager();
 
@@ -45,13 +49,12 @@ public class SkyPirates extends JavaPlugin {
 		pm.registerEvent(Event.Type.VEHICLE_UPDATE, vl, Priority.Normal, this);
 		pm.registerEvent(Event.Type.VEHICLE_DAMAGE, vl, Priority.Normal, this);
 		pm.registerEvent(Event.Type.PLAYER_ANIMATION, pl, Priority.Normal, this);
-		pm.registerEvent(Event.Type.PLAYER_ITEM, pl, Priority.Normal, this);
+		pm.registerEvent(Event.Type.PLAYER_INTERACT, pl, Priority.Normal, this);
 		populateHelmets();
 
 		PluginDescriptionFile pdfFile = this.getDescription();
 		Permission.initialize(getServer());
-		// EXAMPLE: Custom code, here we just output some info so we can check
-		// all is well.
+
 		log.info("[" + pdfFile.getName() + "]: version ["
 				+ pdfFile.getVersion() + "] (" + codename + ") loaded");
 
