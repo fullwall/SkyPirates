@@ -1,10 +1,9 @@
 package com.fullwall.SkyPirates;
 
+import org.bukkit.Material;
 import org.bukkit.entity.Boat;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
-import org.bukkit.event.player.PlayerAnimationEvent;
-import org.bukkit.event.player.PlayerAnimationType;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerListener;
 
@@ -17,17 +16,23 @@ public class PlayerListen extends PlayerListener {
 
 	@Override
 	public void onPlayerInteract(PlayerInteractEvent event) {
-		if (event.getAction() == Action.RIGHT_CLICK_AIR) {
-			Player p = event.getPlayer();
-			if (!(p.isInsideVehicle()))
-				return;
-			if (!(p.getVehicle() instanceof Boat))
-				return;
-			if (!(checkBoats((Boat) p.getVehicle())))
-				return;
-			BoatHandler boat = getBoatHandler((Boat) p.getVehicle());
-			boat.doRightClick();
+		if (event.hasBlock()
+				&& event.getClickedBlock().getType() == Material.BOAT) {
+			return;
 		}
+		Player p = event.getPlayer();
+		if (!(p.isInsideVehicle()))
+			return;
+		if (!(p.getVehicle() instanceof Boat))
+			return;
+		if (!(checkBoats((Boat) p.getVehicle())))
+			return;
+		BoatHandler boat = getBoatHandler((Boat) p.getVehicle());
+		if (event.getAction() == Action.RIGHT_CLICK_AIR
+				|| event.getAction() == Action.RIGHT_CLICK_BLOCK)
+			boat.doRightClick();
+		else if (boat.delay == 0)
+			boat.doArmSwing();
 	}
 
 	/*
@@ -35,24 +40,6 @@ public class PlayerListen extends PlayerListener {
 	 * Boating.playerModes.put(event.getPlayer(), 0); super.onPlayerJoin(event);
 	 * }
 	 */
-	@Override
-	public void onPlayerAnimation(PlayerAnimationEvent event) {
-		if (!(event.getAnimationType() == PlayerAnimationType.ARM_SWING)) {
-			return;
-		}
-		Player player = event.getPlayer();
-		if (!player.isInsideVehicle()) {
-			return;
-		}
-		if (!(player.getVehicle() instanceof Boat)) {
-			return;
-		}
-		if (!(checkBoats((Boat) player.getVehicle())))
-			return;
-		BoatHandler boat = getBoatHandler((Boat) player.getVehicle());
-		if (boat.delay == 0)
-			boat.doArmSwing();
-	}
 
 	public static boolean checkBoats(Boat boat) {
 		if (SkyPirates.boats == null

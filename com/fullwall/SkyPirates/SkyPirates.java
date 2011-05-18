@@ -46,9 +46,7 @@ public class SkyPirates extends JavaPlugin {
 		pm.registerEvent(Event.Type.VEHICLE_MOVE, vl, Priority.Normal, this);
 		pm.registerEvent(Event.Type.VEHICLE_ENTER, vl, Priority.Normal, this);
 		pm.registerEvent(Event.Type.VEHICLE_EXIT, vl, Priority.Normal, this);
-		pm.registerEvent(Event.Type.VEHICLE_UPDATE, vl, Priority.Normal, this);
 		pm.registerEvent(Event.Type.VEHICLE_DAMAGE, vl, Priority.Normal, this);
-		pm.registerEvent(Event.Type.PLAYER_ANIMATION, pl, Priority.Normal, this);
 		pm.registerEvent(Event.Type.PLAYER_INTERACT, pl, Priority.Normal, this);
 		populateHelmets();
 
@@ -81,21 +79,12 @@ public class SkyPirates extends JavaPlugin {
 		}
 		String fullCommand = commandName + parameters;
 		String[] split = fullCommand.split(" ");
-		if (player.isInsideVehicle() == false) {
-			return true;
-		}
-		if (!(player.getVehicle() instanceof Boat)
-				&& !(PlayerListen.checkBoats((Boat) player.getVehicle()))) {
-			return true;
-		}
 		if (!(Permission.genericCheck(player, "skypirates.player.changemode"))) {
 			return true;
 		}
 		if (split.length >= 2
 				&& (split[0].equals("/skypirates") || split[0].equals("/sky") || split[0]
 						.contains("/skypi")) && (split[1].length() >= 1)) {
-			BoatHandler boat = PlayerListen.getBoatHandler((Boat) player
-					.getVehicle());
 			if (split[1].equals("clear") || split[1].equals("c")) {
 				if (Permission.genericCheck(player, "skypirates.admin.clear")) {
 					BoatHandler b;
@@ -118,20 +107,64 @@ public class SkyPirates extends JavaPlugin {
 					return true;
 				}
 				return true;
-			} else if (split[1].equals("p") || split[1].equals("plane")) {
+			} else if (split[1].equals("help")) {
+				if (!(Permission.genericCheck(player, "skypirates.player.help"))) {
+					player.sendMessage(ChatColor.DARK_RED
+							+ "You don't have permission to use that command.");
+					return true;
+				}
+				player.sendMessage(ChatColor.AQUA + "SkyPirates Modes List");
+				player.sendMessage(ChatColor.YELLOW + "---------------------");
+				player.sendMessage(ChatColor.GREEN + "plane|p - "
+						+ ChatColor.AQUA + "turns your boat into a plane.");
+				player.sendMessage(ChatColor.GREEN + "submarine|sub|s - "
+						+ ChatColor.AQUA
+						+ "turns your boat into a submersible.");
+				player.sendMessage(ChatColor.GREEN + "hoverboat|h - "
+						+ ChatColor.AQUA + "turns your boat into a hoverboat.");
+				player.sendMessage(ChatColor.GREEN + "glider|g - "
+						+ ChatColor.AQUA + "turns your boat into a glider.");
+				player.sendMessage(ChatColor.GREEN + "drill|d - "
+						+ ChatColor.AQUA + "turns your boat into a drill.");
+				player.sendMessage(ChatColor.GREEN
+						+ "anything else - "
+						+ ChatColor.AQUA
+						+ "turns your boat back into the regular old jumping variety.");
+				player.sendMessage(ChatColor.YELLOW + "---------------------");
+				return true;
+			}
+			ArrayList<String> string = new ArrayList<String>();
+			string.add("p");
+			string.add("s");
+			string.add("g");
+			string.add("d");
+			string.add("h");
+			if (!string.contains("" + split[1].charAt(0))) {
+				return false;
+			}
+			if (player.isInsideVehicle() == false) {
+				player.sendMessage(ChatColor.RED
+						+ "Modes must be changed within a boat.");
+				return true;
+			}
+			if (!(player.getVehicle() instanceof Boat)
+					&& !(PlayerListen.checkBoats((Boat) player.getVehicle()))) {
+				player.sendMessage(ChatColor.RED
+						+ "Modes must be changed within a boat.");
+				return true;
+			}
+			BoatHandler boat = PlayerListen.getBoatHandler((Boat) player
+					.getVehicle());
+			if (split[1].equals("p") || split[1].equals("plane")) {
 				if (Permission.genericCheck(player, "skypirates.modes.plane")) {
 					player.sendMessage(ChatColor.GREEN
-							+ "The boat feels suddenly weightless, like a breath of wind");
-					player.sendMessage(ChatColor.GREEN
-							+ "would carry you away!");
+							+ "The boat feels suddenly weightless, like a breath of wind would carry you away!");
 					playerModes.put(player, 1);
 					boat.setMode(1);
 					return true;
 				} else {
 					player.sendMessage(ChatColor.RED
-							+ "As much as you will it to float, the boat "
-							+ ChatColor.RED
-							+ "stubbornly remains on the ground.");
+							+ "As much as you will it to float, the boat remains stubbornly on the ground.");
 					return true;
 				}
 			} else if (split[1].equals("s") || split[1].contains("sub")) {
@@ -139,9 +172,7 @@ public class SkyPirates extends JavaPlugin {
 						"skypirates.modes.submarine")) {
 					playerModes.put(player, 2);
 					player.sendMessage(ChatColor.BLUE
-							+ "You feel the boat getting heavier and heavier as you ");
-					player.sendMessage(ChatColor.BLUE
-							+ "sink beneath the waves.");
+							+ "You feel the boat getting heavier and heavier as you sink beneath the waves.");
 					boat.setMode(2);
 					return true;
 				} else {
@@ -177,7 +208,7 @@ public class SkyPirates extends JavaPlugin {
 			} else if (split[1].contains("drill") || split[1].equals("d")) {
 				if (Permission.genericCheck(player, "skypirates.modes.drill")) {
 					player.sendMessage(ChatColor.DARK_GRAY
-							+ "The boat feels like it has immense force behind it.");
+							+ "The boat feels like it has immense force behind it, enough to drill through solid earth.");
 					SkyPirates.playerModes.put(player, 5);
 					boat.setMode(5);
 					return true;
@@ -186,31 +217,6 @@ public class SkyPirates extends JavaPlugin {
 							+ "The boat retains its usual strength.");
 					return true;
 				}
-			} else if (split[1].equals("help")) {
-				if (!(Permission.genericCheck(player, "skypirates.player.help"))) {
-					player.sendMessage(ChatColor.DARK_RED
-							+ "You don't have permission to use that command.");
-					return true;
-				}
-				player.sendMessage(ChatColor.AQUA + "SkyPirates Modes List");
-				player.sendMessage(ChatColor.YELLOW + "---------------------");
-				player.sendMessage(ChatColor.RED + "plane|p - "
-						+ ChatColor.AQUA + "turns your boat into a plane.");
-				player.sendMessage(ChatColor.RED + "submarine|sub|s - "
-						+ ChatColor.AQUA
-						+ "turns your boat into a submersible.");
-				player.sendMessage(ChatColor.RED + "hoverboat|h - "
-						+ ChatColor.AQUA + "turns your boat into a hoverboat.");
-				player.sendMessage(ChatColor.RED + "glider|g - "
-						+ ChatColor.AQUA + "turns your boat into a glider.");
-				player.sendMessage(ChatColor.RED + "drill|d - "
-						+ ChatColor.AQUA + "turns your boat into a drill.");
-				player.sendMessage(ChatColor.RED
-						+ "anything else - "
-						+ ChatColor.AQUA
-						+ "turns your boat back into the regular old jumping variety.");
-				player.sendMessage(ChatColor.YELLOW + "---------------------");
-				return true;
 			} else {
 
 				player.sendMessage(ChatColor.GRAY

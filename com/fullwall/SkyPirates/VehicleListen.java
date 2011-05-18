@@ -1,10 +1,7 @@
 package com.fullwall.SkyPirates;
 
-import net.minecraft.server.EntityBoat;
-
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
-import org.bukkit.craftbukkit.entity.CraftBoat;
 import org.bukkit.entity.Boat;
 import org.bukkit.entity.Player;
 import org.bukkit.event.vehicle.VehicleBlockCollisionEvent;
@@ -133,30 +130,8 @@ public class VehicleListen extends VehicleListener {
 				|| !(boat.getItemInHandID() == 49 && Permission.genericCheck(p,
 						"skypirates.items.obsidian")))
 			return;
-		// TODO: fix up ugly damage code when bukkit gets proper hooks for
-		// vehicle damage
-		if (event.getAttacker() instanceof Player) {
-			boat.isAttacking = true;
-		}
-		// PickBoat's code
-		CraftBoat cb = (CraftBoat) event.getVehicle();
-		EntityBoat eb = (EntityBoat) cb.getHandle();
-
 		event.setDamage(0);
-		int damage = eb.a;
-
-		// stop it from dying
-		if (damage + event.getDamage() * 10 > 40) {
-			eb.a = 0;
-			event.setCancelled(true);
-		}
-
-		else {
-			eb.a = 0;
-			event.setDamage(0);
-			event.setCancelled(true);
-		}
-		super.onVehicleDamage(event);
+		event.setCancelled(true);
 	}
 
 	public void onVehicleBlockCollision(VehicleBlockCollisionEvent event) {
