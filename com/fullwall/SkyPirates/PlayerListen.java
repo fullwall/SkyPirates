@@ -21,9 +21,7 @@ public class PlayerListen extends PlayerListener {
 			return;
 		}
 		Player p = event.getPlayer();
-		if (!(p.isInsideVehicle()))
-			return;
-		if (!(p.getVehicle() instanceof Boat))
+		if (!(p.isInsideVehicle()) || !(p.getVehicle() instanceof Boat))
 			return;
 		if (!(checkBoats((Boat) p.getVehicle())))
 			return;
@@ -35,18 +33,8 @@ public class PlayerListen extends PlayerListener {
 			boat.doArmSwing();
 	}
 
-	/*
-	 * public void onPlayerJoin(PlayerEvent event) {
-	 * Boating.playerModes.put(event.getPlayer(), 0); super.onPlayerJoin(event);
-	 * }
-	 */
-
 	public static boolean checkBoats(Boat boat) {
-		if (SkyPirates.boats == null
-				|| (SkyPirates.boats.get(boat.getEntityId()) == null))
-			return false;
-		else
-			return true;
+		return SkyPirates.boats.get(boat.getEntityId()) != null;
 	}
 
 	public static BoatHandler getBoatHandler(Boat boat) {

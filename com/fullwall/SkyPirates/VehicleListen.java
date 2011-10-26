@@ -12,6 +12,8 @@ import org.bukkit.event.vehicle.VehicleListener;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
 import org.bukkit.util.Vector;
 
+import com.fullwall.SkyPirates.BoatHandler.Mode;
+
 /**
  * Listener
  * 
@@ -50,30 +52,27 @@ public class VehicleListen extends VehicleListener {
 		BoatHandler boat = PlayerListen.getBoatHandler(tempBoat);
 
 		boat.doYaw(from, to);
-		boat.updateCalendar();
 		// boat.doRealisticFriction();
 
-		if (boat.isMoving() && boat.getMovingLastTick() == true)
+		if (boat.isMoving() && boat.getMovingLastTick())
 			boat.movementHandler(vel);
 
 		return;
 	}
 
+	@Override
 	public void onVehicleEnter(VehicleEnterEvent event) {
 		if (!(event.getEntered() instanceof Player))
 			return;
-
-		Player player = (Player) event.getEntered();
-
 		if (!(event.getVehicle() instanceof Boat))
 			return;
-
-		if (!(Permission.genericCheck(player, "skypirates.player.enable")))
+		Player player = (Player) event.getEntered();
+		if (!(Permission.permission(player, "skypirates.player.enable")))
 			return;
-		BoatHandler boat;
 
+		BoatHandler boat;
 		if ((SkyPirates.playerModes.get(player) == null))
-			SkyPirates.playerModes.put(player, 0);
+			SkyPirates.playerModes.put(player, Mode.NORMAL);
 
 		if (!(PlayerListen.checkBoats((Boat) event.getVehicle()))) {
 			boat = new BoatHandler((Boat) event.getVehicle(),
@@ -95,6 +94,7 @@ public class VehicleListen extends VehicleListener {
 		super.onVehicleEnter(event);
 	}
 
+	@Override
 	public void onVehicleExit(VehicleExitEvent event) {
 		if (!(event.getExited() instanceof Player))
 			return;
@@ -108,14 +108,14 @@ public class VehicleListen extends VehicleListener {
 		p.sendMessage(ChatColor.LIGHT_PURPLE
 				+ "The tingling disappears as you hop out.");
 
-		boat.setMode(0);
+		boat.setMode(Mode.NORMAL);
 		super.onVehicleExit(event);
 	}
 
+	@Override
 	public void onVehicleDamage(VehicleDamageEvent event) {
 		if (!(event.getVehicle() instanceof Boat)
 				|| !(event.getVehicle().getPassenger() instanceof Player)) {
-			super.onVehicleDamage(event);
 			return;
 		}
 
@@ -126,18 +126,18 @@ public class VehicleListen extends VehicleListener {
 		BoatHandler boat = SkyPirates.boats.get(event.getVehicle()
 				.getEntityId());
 
-		if (!Permission.genericCheck(p, "skypirates.admin.invincible")
-				|| !(boat.getItemInHandID() == 49 && Permission.genericCheck(p,
+		if (!Permission.permission(p, "skypirates.admin.invincible")
+				|| !(boat.getItemInHandID() == 49 && Permission.permission(p,
 						"skypirates.items.obsidian")))
 			return;
 		event.setDamage(0);
 		event.setCancelled(true);
 	}
 
+	@Override
 	public void onVehicleBlockCollision(VehicleBlockCollisionEvent event) {
 		if (!(event.getVehicle() instanceof Boat)
 				|| !(event.getVehicle().getPassenger() instanceof Player)) {
-			super.onVehicleBlockCollision(event);
 			return;
 		}
 		event.getVehicle().teleport(event.getVehicle().getPassenger());

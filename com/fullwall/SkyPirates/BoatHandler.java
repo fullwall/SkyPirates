@@ -1,70 +1,55 @@
 package com.fullwall.SkyPirates;
 
-import java.util.Calendar;
 import java.util.Timer;
 import java.util.TimerTask;
 
 import net.minecraft.server.EntityBoat;
-import net.minecraft.server.EntityTNTPrimed;
 
-import org.bukkit.craftbukkit.CraftWorld;
-import org.bukkit.craftbukkit.entity.CraftBoat;
-import org.bukkit.craftbukkit.entity.CraftEntity;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.craftbukkit.entity.CraftBoat;
 import org.bukkit.entity.Boat;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
-import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
-import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
-@SuppressWarnings("unused")
 public class BoatHandler {
-	public final Boat boat;
-	private Vector previousLocation;
-	private Vector previousMotion;
-	private boolean wasMovingLastTick;
-	public Calendar cal;
+	public enum Mode {
+		DRILL,
+		NORMAL,
+		PLANE,
+		SUBMARINE,
+		HOVERBOAT,
+		GLIDER;
+	}
 
-	// mode - 0 is normal, 1 is plane, 2 is submarine, 3 is hoverboat, 4 is
-	// glider
-	private int mode = 0;
+	public final Boat boat;
+	private boolean wasMovingLastTick;
+
+	private Mode mode;
 	private int entityID = 0;
 	public long delay = 0;
-	public boolean isAttacking = false;
-	private boolean throttleChanged = false;
-
-	// 1E308 - max possible floating point value;
-	private final double maxMomentum = 10D;
-	private double rotationMultipler = 0D;
-	private final double flyingMult = 1.0D;
 
 	private double throttle = 1D;
-	public double fromYaw = 0D;
-	public double toYaw = 0D;
-	private int hoverHeight = 0;
+	private double fromYaw = 0D;
+	private double toYaw = 0D;
 
 	private boolean goingDown = false;
 	private boolean goingUp = false;
-	private boolean firstRun = true;
 
-	private final double DOWNWARD_DRIFT = -0.037999998673796664D;
-	private final double COMPENSATION = 0.0379999999999999999999999999999999999999999999D;
-	private final double MAX_BUOYANCY = 0.1D;
-	private int MAX_HOVER_HEIGHT = 1;
+	private static final double MAX_MOMENTUM = 10D;
+	private static final double DOWNWARD_DRIFT = -0.037999998673796664D;
+	private static final double COMPENSATION = 0.0379999999999999999999999999999999999999999999D;
+	private static final double MAX_BUOYANCY = 0.1D;
 
-	public BoatHandler(Boat newBoat, int newMode, int ID) {
+	public BoatHandler(Boat newBoat, Mode newMode, int ID) {
 		boat = newBoat;
+		boat.setWorkOnLand(true);
 		mode = newMode;
 		entityID = ID;
-		cal = Calendar.getInstance();
-		previousMotion = boat.getVelocity().clone();
-		previousLocation = getLocation().toVector().clone();
 		if (isMoving())
 			wasMovingLastTick = true;
 		SkyPirates.boats.put(boat.getEntityId(), this);
@@ -90,17 +75,17 @@ public class BoatHandler {
 	}
 
 	public void setMotionX(double motionX) {
-		motionX = RangeHandler.range(motionX, maxMomentum, -maxMomentum);
+		motionX = RangeHandler.range(motionX, MAX_MOMENTUM, -MAX_MOMENTUM);
 		setMotion(motionX, getMotionY(), getMotionZ());
 	}
 
 	public void setMotionY(double motionY) {
-		motionY = RangeHandler.range(motionY, maxMomentum, -maxMomentum);
+		motionY = RangeHandler.range(motionY, MAX_MOMENTUM, -MAX_MOMENTUM);
 		setMotion(getMotionX(), motionY, getMotionZ());
 	}
 
 	public void setMotionZ(double motionZ) {
-		motionZ = RangeHandler.range(motionZ, maxMomentum, -maxMomentum);
+		motionZ = RangeHandler.range(motionZ, MAX_MOMENTUM, -MAX_MOMENTUM);
 		setMotion(getMotionX(), getMotionY(), motionZ);
 	}
 
@@ -132,46 +117,33 @@ public class BoatHandler {
 		return wasMovingLastTick;
 	}
 
-	public Block getBlockBeneath() {
-		return boat.getWorld().getBlockAt(getX(), getY() - 1, getZ());
-	}
-
-	public int getBlockIdBeneath() {
-		return boat.getWorld().getBlockAt(getX(), getY() - 1, getZ())
-				.getTypeId();
-	}
-
-	public ItemStack getItemInHand() {
-		return getPlayer().getItemInHand();
-	}
-
 	public int getItemInHandID() {
 		return getPlayer().getItemInHand().getTypeId();
-	}
-
-	private int getHelmetID() {
-		return getPlayer().getInventory().getHelmet().getTypeId();
-	}
-
-	private Player getPlayer() {
-		final Player p = (Player) boat.getPassenger();
-		return p;
 	}
 
 	public int getEntityId() {
 		return entityID;
 	}
 
-	private Location getLocation() {
-		return boat.getLocation();
-	}
-
-	private Vector getMaxSpeedVector() {
-		return new Vector(0.4D, boat.getVelocity().getY(), 0.4D);
-	}
-
 	public boolean isMoving() {
 		return getMotionX() != 0D || getMotionY() != 0D || getMotionZ() != 0D;
+	}
+
+	private Block getBlockBeneath() {
+		return boat.getWorld().getBlockAt(getX(), getY() - 1, getZ());
+	}
+
+	private int getBlockIdBeneath() {
+		return boat.getWorld().getBlockAt(getX(), getY() - 1, getZ())
+				.getTypeId();
+	}
+
+	private Player getPlayer() {
+		return (Player) boat.getPassenger();
+	}
+
+	private Location getLocation() {
+		return boat.getLocation();
 	}
 
 	private boolean isGrounded() {
@@ -179,19 +151,12 @@ public class BoatHandler {
 		return be.onGround;
 	}
 
-	public void stopBoat() {
+	private void stopBoat() {
 		setMotion(0D, 0D, 0D);
 	}
 
-	public void setMode(int newMode) {
+	public void setMode(Mode newMode) {
 		mode = newMode;
-	}
-
-	public void updateCalendar() {
-		Calendar current = Calendar.getInstance();
-		if (cal.get(Calendar.SECOND) != current.get(Calendar.SECOND)) {
-			cal = current;
-		}
 	}
 
 	public void resetValues() {
@@ -212,11 +177,6 @@ public class BoatHandler {
 			throttle = 2.5D;
 		else if (throttle <= 0D)
 			throttle = 0D;
-		if (throttle != 1) {
-			throttleChanged = true;
-		} else
-			throttleChanged = false;
-
 		return;
 	}
 
@@ -268,24 +228,26 @@ public class BoatHandler {
 	}
 
 	public void movementHandler(Vector vel) {
-
-		Player p = getPlayer();
-		Vector newvel = boat.getVelocity();
 		if (throttle != 1) {
-			speedUpBoat(throttle, newvel);
+			speedUpBoat(throttle, boat.getVelocity());
 		}
-		if (mode == 0) {
+		switch (mode) {
+		case NORMAL:
 			doNormal(vel);
-		} else if (mode == 1) {
+			break;
+		case PLANE:
 			doFlying(vel);
-		} else if (mode == 2) {
+			break;
+		case SUBMARINE:
 			doUnderwater(vel);
-		} else if (mode == 3) {
+			break;
+		case HOVERBOAT:
 			doHover(vel);
-		} else if (mode == 4) {
+			break;
+		case GLIDER:
 			doGlider(vel);
+			break;
 		}
-		previousMotion = boat.getVelocity();
 	}
 
 	public void movementHandler(double MotionY) {
@@ -294,12 +256,9 @@ public class BoatHandler {
 	}
 
 	public void doArmSwing() {
-		int i;
-		if (isAttacking == true)
-			i = 0;
-		else if (mode != 4
+		if (mode != Mode.GLIDER
 				&& getItemInHandID() == 264
-				&& Permission.genericCheck(getPlayer(),
+				&& Permission.permission(getPlayer(),
 						"skypirates.items.diamond")) {
 			changeThrottle(0.25);
 			getPlayer().sendMessage(
@@ -309,19 +268,19 @@ public class BoatHandler {
 							+ "x of its original.");
 		} else {
 			// movementHandler(0.5D);
-			if ((mode == 0) && delay == 0) {
+			if (mode == Mode.NORMAL && delay == 0) {
 				if (getItemInHandID() == 263
-						&& Permission.genericCheck(getPlayer(),
+						&& Permission.permission(getPlayer(),
 								"skypirates.items.coal")) {
 					movementHandler(0.75D);
-					delay = cal.getTimeInMillis() + 750;
+					delay = System.currentTimeMillis() + 750;
 				} else {
 					movementHandler(0.5D);
-					delay = cal.getTimeInMillis();
+					delay = System.currentTimeMillis();
 				}
-			} else if (mode == 1) {
+			} else if (mode == Mode.PLANE) {
 				if (getItemInHandID() == 263
-						&& Permission.genericCheck(getPlayer(),
+						&& Permission.permission(getPlayer(),
 								"skypirates.items.coal")) {
 					goingUp = true;
 					movementHandler(0.5D);
@@ -329,39 +288,34 @@ public class BoatHandler {
 					goingUp = true;
 					movementHandler(0.5D);
 				}
-			} else if (mode == 2) {
+			} else if (mode == Mode.SUBMARINE) {
 				goingUp = true;
 				movementHandler(0.1D);
-			} else if (mode == 4
+			} else if (mode == Mode.GLIDER
 					&& (getBlockIdBeneath() != 8 && getBlockIdBeneath() != 9)) {
 				speedUpBoat(10, boat.getVelocity());
 			}
 		}
-		isAttacking = false;
 	}
 
 	public void doRightClick() {
 		if (getItemInHandID() == 264
-				&& Permission.genericCheck(getPlayer(),
+				&& Permission.permission(getPlayer(),
 						"skypirates.items.diamond")) {
 			changeThrottle(-0.25D);
 			getPlayer().sendMessage(
 					ChatColor.BLUE + "The boat slows. Your speed is now "
 							+ throttle + "x of its original.");
 		} else if (getItemInHandID() == 262
-				&& Permission.genericCheck(getPlayer(),
-						"skypirates.items.arrow")) {
+				&& Permission.permission(getPlayer(), "skypirates.items.arrow")) {
 			getPlayer().shootArrow();
-		} else if (mode == 1
-				&& getItemInHandID() == 46
-				&& Permission
-						.genericCheck(getPlayer(), "skypirates.planes.tnt")) {
+		} else if (mode == Mode.PLANE && getItemInHandID() == 46
+				&& Permission.permission(getPlayer(), "skypirates.planes.tnt")) {
 			Item item = getPlayer().getWorld().dropItemNaturally(
 					getPlayer().getLocation(), new ItemStack(Material.TNT, 1));
-			Timer t = new Timer();
-			t.schedule(new DropTNT(item), 1000);
+			new Timer().schedule(new DropTNT(item), 1000);
 		} else if (getItemInHandID() == 80
-				&& Permission.genericCheck(getPlayer(),
+				&& Permission.permission(getPlayer(),
 						"skypirates.items.snowblock")) {
 			stopBoat();
 			setThrottle(1D);
@@ -369,23 +323,21 @@ public class BoatHandler {
 					.sendMessage(
 							ChatColor.DARK_RED
 									+ "The boat stops with a sudden jolt. Your speed is now only 1x original.");
-		} else if (mode == 1) {
+		} else if (mode == Mode.PLANE) {
 			goingDown = true;
 			movementHandler(-0.65D);
-		} else if (mode == 2) {
+		} else if (mode == Mode.SUBMARINE) {
 			goingDown = true;
 			movementHandler(-0.2D);
-		} else if (mode == 5) {
+		} else if (mode == Mode.DRILL) {
 			doDrill();
 		}
 
 	}
 
 	private void doNormal(Vector vel) {
-
-		CraftEntity ce = (CraftEntity) this.boat.getPassenger();
-
-		Vector playerVelocity = ce.getVelocity().clone();
+		boat.setOccupiedDeceleration(1);
+		Vector playerVelocity = this.boat.getPassenger().getVelocity().clone();
 		double playerVelocityX = playerVelocity.getX();
 		double playerVelocityZ = playerVelocity.getZ();
 
@@ -413,12 +365,11 @@ public class BoatHandler {
 			currentZ = currentZ / 1.2D + playerVelocityZ;
 			this.setMotion(currentX, vel.getY(), currentZ);
 		}
-		if (cal.getTimeInMillis() >= delay + 3000)
+		if (System.currentTimeMillis() >= delay + 3000)
 			delay = 0;
 	}
 
 	private void doGlider(Vector vel) {
-		CraftEntity ce = (CraftEntity) this.boat.getPassenger();
 		if (getBlockBeneath().getType() == Material.AIR)
 			vel.setY(-0.075D);
 		if (vel.getY() < -0.075D)
@@ -427,8 +378,7 @@ public class BoatHandler {
 	}
 
 	private void doFlying(Vector vel) {
-
-		if (goingUp == true) {
+		if (goingUp) {
 			// vel.setY(vel.getY() - 0.02);
 			if (vel.getY() <= 0D) {
 				goingUp = false;
@@ -437,7 +387,7 @@ public class BoatHandler {
 			setMotion(vel.getX(), vel.getY(), vel.getZ());
 			return;
 		}
-		if (goingDown == true) {
+		if (goingDown) {
 			if (vel.getY() <= 0D) {
 				vel.setY(vel.getY() + 0.25);
 				if (vel.getY() >= 0D)
@@ -490,13 +440,13 @@ public class BoatHandler {
 
 		// stop players from drowning underwater
 		if (p.getRemainingAir() != p.getMaximumAir()
-				&& ((Permission.genericCheck(p, "skypirates.player.air")) || (SkyPirates.helmets
-						.contains("" + getHelmetID()) && Permission
-						.genericCheck(p, "skypirates.items.helmets")))) {
+				&& ((Permission.permission(p, "skypirates.player.air")) || (SkyPirates.helmets
+						.contains(p.getInventory().getHelmet().getTypeId()) && Permission
+						.permission(p, "skypirates.items.helmets")))) {
 			p.setRemainingAir(p.getMaximumAir());
 			p.setMaximumAir(p.getMaximumAir());
 		}
-		if (goingUp == true) {
+		if (goingUp) {
 			vel.setY(vel.getY() - 0.009);
 			if (vel.getY() <= 0.025D) {
 				goingUp = false;
@@ -505,7 +455,7 @@ public class BoatHandler {
 			setMotion(vel.getX(), vel.getY(), vel.getZ());
 			return;
 		}
-		if (goingDown == true) {
+		if (goingDown) {
 			if (vel.getY() <= -0.6D) {
 				vel.setY(-0.6D);
 				if (vel.getY() >= 0D)
@@ -520,12 +470,11 @@ public class BoatHandler {
 	}
 
 	private void doHover(Vector vel) {
+		int maxHeight = 1;
 		if (getItemInHandID() == 263
-				&& Permission
-						.genericCheck(getPlayer(), "skypirates.items.coal")) {
-			MAX_HOVER_HEIGHT = 2;
-		} else
-			MAX_HOVER_HEIGHT = 1;
+				&& Permission.permission(getPlayer(), "skypirates.items.coal")) {
+			maxHeight = 2;
+		}
 
 		int x = boat.getLocation().getBlockX();
 		int y = boat.getLocation().getBlockY();
@@ -537,7 +486,7 @@ public class BoatHandler {
 
 		getLocation().setYaw((float) (getYaw() * 6));
 
-		for (int i = 0; i != MAX_HOVER_HEIGHT + 64; i++) {
+		for (int i = 0; i != maxHeight + 64; i++) {
 			block = boat.getWorld().getBlockAt(x, y - blockY, z);
 			if (block.getType() == Material.AIR)
 				blockY += 1;
@@ -545,11 +494,11 @@ public class BoatHandler {
 				break;
 			else
 				break;
-			if (i > MAX_HOVER_HEIGHT + 1)
+			if (i > maxHeight + 1)
 				goDown = true;
 		}
 		// if (stop == false)
-		hoverHeight = block.getY() + (MAX_HOVER_HEIGHT * 2);
+		int hoverHeight = block.getY() + (maxHeight * 2);
 
 		if (boat.getLocation().getY() < hoverHeight + 0.6) {
 			setMotionY(0.35D);
@@ -572,7 +521,7 @@ public class BoatHandler {
 							boat.getLocation().getBlockX() - x,
 							boat.getLocation().getBlockY() - y,
 							boat.getLocation().getBlockZ() - z);
-					if (!block.getType().equals(Material.AIR)
+					if (block.getType() != Material.AIR
 							&& (block.getTypeId() != 7)
 							&& (block.getTypeId() != 8)
 							&& (block.getTypeId() != 9)
@@ -589,8 +538,8 @@ public class BoatHandler {
 	}
 
 	public void doYaw(Location from, Location to) {
-		fromYaw = (double) from.getYaw();
-		toYaw = (double) to.getYaw();
+		fromYaw = from.getYaw();
+		toYaw = to.getYaw();
 		// attempt to increase rotation on land
 		if (toYaw >= fromYaw - .025 && toYaw <= fromYaw + .025) {
 			to.setYaw((float) (fromYaw * 2.8));
@@ -607,12 +556,13 @@ public class BoatHandler {
 	}
 
 	class DropTNT extends TimerTask {
-		private Item i;
+		private final Item i;
 
 		public DropTNT(Item i) {
 			this.i = i;
 		}
 
+		@Override
 		public void run() {
 			Location loc = i.getLocation();
 			int x = loc.getBlockX();
@@ -622,14 +572,8 @@ public class BoatHandler {
 				Timer t = new Timer();
 				t.schedule(this, 1000);
 			} else {
-				Block b = i.getWorld().getBlockAt(i.getLocation());
+				i.getWorld().createExplosion(i.getLocation(), 5);
 				i.remove();
-				b.setType(Material.TNT);
-				CraftWorld world = (CraftWorld) b.getWorld();
-				EntityTNTPrimed tnt = new EntityTNTPrimed(world.getHandle(),
-						b.getX() + 0.5F, b.getY() + 0.5F, b.getZ() + 0.5F);
-				world.getHandle().a(tnt);
-				b.setType(Material.AIR);
 			}
 		}
 	}
