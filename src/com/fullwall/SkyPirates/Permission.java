@@ -1,9 +1,9 @@
-package com.fullwall.SkyPirates;
+package com.fullwall.skypirates;
 
-import org.bukkit.entity.Player;
+import org.bukkit.command.CommandSender;
 
 public class Permission {
-    public static boolean has(Player player, String str) {
+    public static boolean has(CommandSender player, String str) {
         return player.hasPermission(str);
     }
 }

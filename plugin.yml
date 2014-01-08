@@ -1,0 +1,8 @@
+name: SkyPirates
+author: fullwall
+version: 1.0
+main: com.fullwall.skypirates.SkyPirates
+commands:
+  skypirates:
+    description: skypirates
+    aliases: [sky, sp]

@@ -1,4 +1,4 @@
-package com.fullwall.SkyPirates;
+package com.fullwall.skypirates;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -13,9 +13,8 @@ import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.bukkit.event.vehicle.VehicleEnterEvent;
 import org.bukkit.event.vehicle.VehicleExitEvent;
 import org.bukkit.event.vehicle.VehicleMoveEvent;
-import org.bukkit.util.Vector;
 
-import com.fullwall.SkyPirates.BoatHandler.Mode;
+import com.fullwall.skypirates.BoatHandler.Mode;
 
 public class Events implements Listener {
     private final SkyPirates plugin;
@@ -32,27 +31,37 @@ public class Events implements Listener {
         BoatHandler boat = plugin.getBoatHandler(p.getVehicle());
         if (event.getAction() == Action.RIGHT_CLICK_AIR || event.getAction() == Action.RIGHT_CLICK_BLOCK)
             boat.doRightClick();
-        else if (boat.delay == 0)
-            boat.doArmSwing();
     }
 
     @EventHandler
-    public void onVehicleMove(VehicleMoveEvent event) {
+    public void onVehicleDamage(VehicleDamageEvent event) {
         if (!(event.getVehicle() instanceof Boat) || !(event.getVehicle().getPassenger() instanceof Player)) {
             return;
         }
         if (!plugin.hasBoat(event.getVehicle()))
             return;
 
-        BoatHandler boat = plugin.getBoatHandler(event.getVehicle());
-        boat.doYaw(event.getFrom(), event.getTo());
-        // boat.doRealisticFriction();
+        Player p = (Player) event.getVehicle().getPassenger();
 
-        if (boat.isMoving()) {
-            Vector vel = event.getVehicle().getVelocity();
-            boat.movementHandler(vel);
-            event.getVehicle().setVelocity(vel);
+        if (!Permission.has(p, "skypirates.admin.invincible")
+                && !(p.getItemInHand().getType() == Material.OBSIDIAN && Permission.has(p, "skypirates.items.obsidian")))
+            return;
+
+        event.setDamage(0);
+        event.setCancelled(true);
+    }
+
+    @EventHandler
+    public void onVehicleDestroy(VehicleDestroyEvent event) {
+        if (!plugin.hasBoat(event.getVehicle()) || !(event.getVehicle().getPassenger() instanceof Player)) {
+            return;
         }
+        Player p = (Player) event.getVehicle().getPassenger();
+
+        if (!Permission.has(p, "skypirates.admin.invincible")
+                && !(p.getItemInHand().getType() == Material.OBSIDIAN && Permission.has(p, "skypirates.items.obsidian")))
+            return;
+        event.setCancelled(true);
     }
 
     @EventHandler
@@ -83,38 +92,23 @@ public class Events implements Listener {
         }
         BoatHandler boat = plugin.getBoatHandler(event.getVehicle());
         player.sendMessage(ChatColor.LIGHT_PURPLE + "The tingling disappears as you hop out.");
-
         boat.setMode(Mode.NORMAL);
     }
 
     @EventHandler
-    public void onVehicleDamage(VehicleDamageEvent event) {
+    public void onVehicleMove(VehicleMoveEvent event) {
         if (!(event.getVehicle() instanceof Boat) || !(event.getVehicle().getPassenger() instanceof Player)) {
             return;
         }
-
         if (!plugin.hasBoat(event.getVehicle()))
             return;
 
-        Player p = (Player) event.getVehicle().getPassenger();
+        BoatHandler boat = plugin.getBoatHandler(event.getVehicle());
+        boat.doYaw(event.getFrom(), event.getTo());
+        // boat.doRealisticFriction();
 
-        if (!Permission.has(p, "skypirates.admin.invincible")
-                && !(p.getItemInHand().getType() == Material.OBSIDIAN && Permission.has(p, "skypirates.items.obsidian")))
-            return;
-        event.setDamage(0);
-        event.setCancelled(true);
-    }
-
-    @EventHandler
-    public void onVehicleDestroy(VehicleDestroyEvent event) {
-        if (plugin.hasBoat(event.getVehicle()) || !(event.getVehicle().getPassenger() instanceof Player)) {
-            return;
+        if (boat.isMoving()) {
+            boat.movementHandler();
         }
-        Player p = (Player) event.getVehicle().getPassenger();
-
-        if (!Permission.has(p, "skypirates.admin.invincible")
-                && !(p.getItemInHand().getType() == Material.OBSIDIAN && Permission.has(p, "skypirates.items.obsidian")))
-            return;
-        event.setCancelled(true);
     }
 }

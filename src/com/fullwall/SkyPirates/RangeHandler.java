@@ -1,4 +1,4 @@
-package com.fullwall.SkyPirates;
+package com.fullwall.skypirates;
 
 public class RangeHandler {
 
