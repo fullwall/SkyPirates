@@ -43,8 +43,8 @@ public class Events implements Listener {
 
         Player p = (Player) event.getVehicle().getPassenger();
 
-        if (!Permission.has(p, "skypirates.admin.invincible")
-                && !(p.getItemInHand().getType() == Material.OBSIDIAN && Permission.has(p, "skypirates.items.obsidian")))
+        if (!Permission.has(p, "skypirates.admin.invincible") && !(p.getItemInHand().getType() == Material.OBSIDIAN
+                && Permission.has(p, "skypirates.items.obsidian")))
             return;
 
         event.setDamage(0);
@@ -58,8 +58,8 @@ public class Events implements Listener {
         }
         Player p = (Player) event.getVehicle().getPassenger();
 
-        if (!Permission.has(p, "skypirates.admin.invincible")
-                && !(p.getItemInHand().getType() == Material.OBSIDIAN && Permission.has(p, "skypirates.items.obsidian")))
+        if (!Permission.has(p, "skypirates.admin.invincible") && !(p.getItemInHand().getType() == Material.OBSIDIAN
+                && Permission.has(p, "skypirates.items.obsidian")))
             return;
         event.setCancelled(true);
     }
@@ -86,7 +86,7 @@ public class Events implements Listener {
         if (!plugin.hasBoat(event.getVehicle()))
             return;
         Player player = (Player) event.getExited();
-        if (player.getItemInHand() != null) {
+        if (player.getItemInHand() != null && player.getItemInHand().getType() != Material.AIR) {
             event.setCancelled(true);
             return;
         }

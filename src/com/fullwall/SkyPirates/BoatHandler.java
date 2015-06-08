@@ -4,23 +4,25 @@ import java.lang.reflect.Field;
 import java.util.EnumSet;
 import java.util.Set;
 
-import net.minecraft.server.v1_7_R1.EntityBoat;
-import net.minecraft.server.v1_7_R1.EntityLiving;
-import net.minecraft.server.v1_7_R1.EntityPlayer;
-
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.craftbukkit.v1_7_R1.entity.CraftBoat;
+import org.bukkit.craftbukkit.v1_8_R3.entity.CraftBoat;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Boat;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
+
+import net.minecraft.server.v1_8_R3.EntityBoat;
+import net.minecraft.server.v1_8_R3.EntityLiving;
+import net.minecraft.server.v1_8_R3.EntityPlayer;
 
 public class BoatHandler {
     public final Boat boat;
@@ -53,28 +55,29 @@ public class BoatHandler {
         if (mode != Mode.GLIDER && getInHandType() == Material.DIAMOND
                 && Permission.has(getPlayer(), "skypirates.items.diamond")) {
             changeThrottle(0.25);
-            getPlayer().sendMessage(
-                    ChatColor.YELLOW + "The boat " + ChatColor.DARK_RED + "speeds up." + ChatColor.YELLOW
-                    + " Your speed is now " + throttle + "x of its original.");
+            getPlayer().sendMessage(ChatColor.YELLOW + "The boat " + ChatColor.DARK_RED + "speeds up."
+                    + ChatColor.YELLOW + " Your speed is now " + throttle + "x of its original.");
         } else {
-            if (mode == Mode.NORMAL && delay == 0) {
+            if (mode == Mode.NORMAL && delay == 0 && isGrounded()) {
                 if (getInHandType() == Material.COAL && Permission.has(getPlayer(), "skypirates.items.coal")) {
-                    setMotionY(0.75D);
+                    setMotionY(0.65D);
                     delay = System.currentTimeMillis() + 750;
                 } else {
-                    setMotionY(0.5D);
+                    setMotionY(0.4D);
                     delay = System.currentTimeMillis();
                 }
             } else if (mode == Mode.PLANE) {
                 if (getInHandType() == Material.COAL && Permission.has(getPlayer(), "skypirates.items.coal")) {
                     goingUp = true;
-                    setMotionY(0.5D);
+                    setMotionY(0.25D);
                 } else {
                     goingUp = true;
-                    setMotionY(0.5D);
+                    setMotionY(0.25D);
                 }
                 delay = System.currentTimeMillis() + 80;
-            } else if (mode == Mode.SUBMARINE) {
+            } else if (mode == Mode.SUBMARINE
+                    && ((getBlockIdBeneath() == Material.WATER || getBlockIdBeneath() == Material.STATIONARY_WATER)
+                            || (getBlockIn() == Material.WATER || getBlockIn() == Material.STATIONARY_WATER))) {
                 goingUp = true;
                 setMotionY(0.1D);
             } else if (mode == Mode.GLIDER && getBlockIdBeneath() != Material.WATER
@@ -231,14 +234,15 @@ public class BoatHandler {
             Item item = getPlayer().getWorld().dropItemNaturally(getPlayer().getLocation(),
                     new ItemStack(Material.TNT, 1));
             Bukkit.getScheduler().scheduleSyncDelayedTask(SkyPirates.plugin, new DropTNT(item), 20);
-        } else if (getInHandType() == Material.SNOW_BLOCK && Permission.has(getPlayer(), "skypirates.items.snowblock")) {
+        } else
+            if (getInHandType() == Material.SNOW_BLOCK && Permission.has(getPlayer(), "skypirates.items.snowblock")) {
             boat.setVelocity(new Vector(0, 0, 0));
             throttle = 1;
             getPlayer().sendMessage(
                     ChatColor.DARK_RED + "The boat stops with a sudden jolt. Your speed is now only 1x original.");
         } else if (mode == Mode.PLANE) {
             goingDown = true;
-            setMotionY(-0.4D);
+            setMotionY(-0.27D);
         } else if (mode == Mode.SUBMARINE) {
             goingDown = true;
             setMotionY(-0.2D);
@@ -262,11 +266,14 @@ public class BoatHandler {
             vel.setY(-0.15D);
 
         // stop players from drowning underwater
-        if (p.getRemainingAir() != p.getMaximumAir()
-                && (Permission.has(p, "skypirates.player.air") || (helmets.contains(p.getInventory().getHelmet()
-                        .getType()) && Permission.has(p, "skypirates.items.helmets")))) {
+        if ((p.getRemainingAir() != p.getMaximumAir() && (Permission.has(p, "skypirates.player.air"))
+                || (p.getInventory().getHelmet() != null && helmets.contains(p.getInventory().getHelmet().getType())
+                        && Permission.has(p, "skypirates.items.helmets")))) {
             p.setRemainingAir(p.getMaximumAir());
             p.setMaximumAir(p.getMaximumAir());
+            if (!p.hasPotionEffect(PotionEffectType.WATER_BREATHING)) {
+                p.addPotionEffect(new PotionEffect(PotionEffectType.WATER_BREATHING, 100, 1));
+            }
         }
         if (goingUp) {
             vel.setY(vel.getY() - 0.009);
@@ -303,6 +310,10 @@ public class BoatHandler {
 
     private Material getBlockIdBeneath() {
         return boat.getWorld().getBlockAt(getX(), getY() - 1, getZ()).getType();
+    }
+
+    private Material getBlockIn() {
+        return boat.getWorld().getBlockAt(getX(), getY(), getZ()).getType();
     }
 
     private Material getInHandType() {
@@ -484,7 +495,7 @@ public class BoatHandler {
 
     static {
         try {
-            JUMP_FIELD = EntityLiving.class.getDeclaredField("bd");
+            JUMP_FIELD = EntityLiving.class.getDeclaredField("aY");
             JUMP_FIELD.setAccessible(true);
         } catch (NoSuchFieldException e) {
             e.printStackTrace();
